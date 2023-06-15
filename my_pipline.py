@@ -94,8 +94,6 @@ class PIPELINE():
             while len(tokens) > 0:
                  # chunk_len处截断，取hn
                 out, state = self.model.forward(tokens[:args.chunk_len], state)
-                print(out.shape) # 50277
-                print(out.shape) # 160, 2560
                 tokens = tokens[args.chunk_len:]
 
             # 感觉没什么用
