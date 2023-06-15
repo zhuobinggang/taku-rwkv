@@ -3,8 +3,11 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 
+END_OF_TEXT = 0
+
 class PIPELINE_ARGS():
-    def __init__(self, temperature=1.0, top_p=0.85, top_k=0, alpha_frequency=0.2, alpha_presence=0.2, token_ban=[], token_stop=[], chunk_len=256):
+    def __init__(self, temperature=1.2, top_p=0.5, top_k=0, alpha_frequency=0.4, alpha_presence=0.4, token_ban=[], token_stop=[END_OF_TEXT], chunk_len=256):
+        # def __init__(self, temperature=1.0, top_p=0.85, top_k=0, alpha_frequency=0.2, alpha_presence=0.2, token_ban=[], token_stop=[], chunk_len=256):
         self.temperature = temperature
         self.top_p = top_p
         self.top_k = top_k
@@ -15,8 +18,10 @@ class PIPELINE_ARGS():
         self.chunk_len = chunk_len # split input into chunks to save VRAM (shorter -> slower)
 
 class PIPELINE():
-    def __init__(self, model, WORD_NAME):
+    def __init__(self, model, WORD_NAME = '20B_tokenizer.json', stop=f"\n\nBob"):
         self.model = model
+        self.stop = stop
+        self.prefix = 'Alice:'
         if WORD_NAME == 'cl100k_base':
             import tiktoken
             self.tokenizer = tiktoken.get_encoding(WORD_NAME)
@@ -86,7 +91,6 @@ class PIPELINE():
         out_str = ''
         occurrence = {}
         for i in range(token_count):
-
             # forward & adjust prob.
             # 因为会保留state，所以chunk结束之后重新开始也没关系的样子
             tokens = self.encode(ctx) if i == 0 else [token] # 一开始encode ctx以后就[token]
@@ -119,4 +123,9 @@ class PIPELINE():
                     callback(tmp)
                 out_str += tmp
                 out_last = i + 1
+                if self.stop in out_str:
+                    print(f'切断: {out_str}')
+                    out_str = out_str.split(self.stop)[0]
+                    break
+        out_str = out_str.replace(self.prefix, '').strip()
         return out_str
